@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # ---------------------- CUSTOM CSS ----------------------
-"""st.markdown("""
+"""st.markdown(
 <style>
 /* App background and text */
 .stApp {
@@ -58,7 +58,7 @@ h1, h2, h3, h4, .stMarkdown, .stMetric {
     }
 }
 </style>
-""", unsafe_allow_html=True)"""
+, unsafe_allow_html=True)"""
 
 
 # ---------------------- DATA LOAD ----------------------
