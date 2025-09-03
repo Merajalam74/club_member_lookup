@@ -17,48 +17,6 @@ st.set_page_config(
 )
 
 # ---------------------- CUSTOM CSS ----------------------
-"""st.markdown(
-<style>
-/* App background and text */
-.stApp {
-    background-color: #ffffff;   /* pure white background */
-    color: #111111;              /* almost black text */
-    font-family: "Helvetica Neue", sans-serif;
-}
-
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background-color: #f8f9fa;   /* very light grey */
-    border-right: 1px solid #e0e0e0;
-    color: #111111;              /* dark text for visibility */
-}
-
-/* Headings and titles */
-h1, h2, h3, h4 {
-    color: #111111;              /* strong contrast */
-}
-
-/* Emojis look sharper on light background */
-h1, h2, h3, h4, .stMarkdown, .stMetric {
-    font-weight: 600;
-}
-
-/* Table styling */
-[data-testid="stDataFrame"] table {
-    font-size: 0.9rem !important;
-    color: #111111;              /* dark text in tables */
-    background-color: #ffffff;   /* white table background */
-}
-
-/* Mobile sidebar tweak */
-@media (max-width: 768px) {
-    [data-testid="stSidebar"] {
-        width: 70% !important;
-        min-width: 250px !important;
-    }
-}
-</style>
-, unsafe_allow_html=True)"""
 
 
 # ---------------------- DATA LOAD ----------------------
