@@ -57,7 +57,7 @@ if menu == "🏠 Dashboard":
 
     st.metric("📥 Total Student joined Any Club", total_responses)
     st.metric("👥 Total Students", total_students)
-    st.metric("Student Didn't Joined Any Club",total_responses-total_students)
+    st.metric("Student Didn't Joined Any Club",total_students-total_responses)
 
     if not df.empty:
         st.subheader("📊 Latest Responses")
