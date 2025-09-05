@@ -47,7 +47,8 @@ menu = st.sidebar.radio(
         "🔎 Search by Registration Number",
         "🏆 Search by Club",
         "✅ Students Joined At Least One Club",
-        "🚫 Students Who Have Not Responded"
+        "🚫 Students Who Have Not Responded",
+        "🛠️ Club Owner Panel"
     ]
 )
 
