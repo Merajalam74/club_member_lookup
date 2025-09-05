@@ -4,7 +4,6 @@ College Club Management Tool - Modern UI with Graphs
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # ---------------------- CONFIG ----------------------
 st.set_page_config(
@@ -42,10 +41,12 @@ div[data-testid="stMetric"] {
 """, unsafe_allow_html=True)
 
 # ---------------------- DATA LOAD ----------------------
+# Responses sheet (Google Form output)
 csv_url = "https://docs.google.com/spreadsheets/d/1ZgOV7SHOX8XzK7EzgVTzDC8okXTPE_sCm1CRCq5Qdjs/gviz/tq?tqx=out:csv&sheet=Form%20responses%201"
 df = pd.read_csv(csv_url)
 df.columns = df.columns.str.strip()
 
+# Master student list
 all_students_link = "https://docs.google.com/spreadsheets/d/1iXn5B9vmizIpOp_1LAjKjLxyTiEf67b1/gviz/tq?tqx=out:csv&sheet=Form%20responses%201"
 all_students_df = pd.read_csv(all_students_link)
 all_students_df.columns = all_students_df.columns.str.strip()
@@ -86,17 +87,18 @@ if menu == "🏠 Dashboard":
         st.metric("🚫 Not Responded", total_not_responded if total_not_responded >= 0 else 0)
 
     # ----- Club participation bar chart -----
-	st.subheader("📊 Club Participation Comparison")
+    st.subheader("📊 Club Participation Comparison")
 
-	if "Club 1" in df.columns and "Club 2" in df.columns:
-	    clubs = pd.concat([df["Club 1"], df["Club 2"]]).dropna()
-	    club_counts = clubs.value_counts().reset_index()
-	    club_counts.columns = ["Club", "Count"]
+    if "Club 1" in df.columns and "Club 2" in df.columns:
+        clubs = pd.concat([df["Club 1"], df["Club 2"]]).dropna()
+        club_counts = clubs.value_counts().reset_index()
+        club_counts.columns = ["Club", "Count"]
 
- 	   st.bar_chart(club_counts.set_index("Club"))
-	else:
- 	   st.warning("⚠️ Club columns not found in the sheet.")
- 	   # ----- Latest responses -----
+        st.bar_chart(club_counts.set_index("Club"))
+    else:
+        st.warning("⚠️ Club columns not found in the sheet.")
+
+    # ----- Latest responses -----
     st.subheader("🕒 Latest Responses")
     st.dataframe(df.tail(5), use_container_width=True)
 
