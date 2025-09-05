@@ -26,6 +26,10 @@ csv_url = "https://docs.google.com/spreadsheets/d/1ZgOV7SHOX8XzK7EzgVTzDC8okXTPE
 df = pd.read_csv(csv_url)
 df.columns = df.columns.str.strip()
 
+# ---------------------- OWNER CONFIG ----------------------
+OWNER_PIN = "1234"   # 🔑 set your own PIN for authentication
+OWNER_ACTIVITY_FORM_URL = "https://forms.gle/uWH3JUhz1jMh8t4PA"
+USE_SHEETS_API_FOR_ACTIVITY_POST = False  # keep False unless you want API posting
 
 # All students data (Excel from Google Drive link)
 
@@ -149,3 +153,17 @@ elif menu == "🚫 Students Who Have Not Responded":
             st.success("🎉 All students have responded!")
     else:
         st.error("⚠️ Could not load All Students Excel. Please check the Drive link.")
+# ---------------------- CLUB OWNER PANEL ----------------------
+elif menu == "🛠️ Club Owner Panel":
+    st.title("🛠️ Club Owner Panel")
+
+    # PIN check
+    pin = st.text_input("Enter Owner PIN", type="password")
+    if pin != OWNER_PIN:
+        st.warning("Enter valid PIN to access the panel.")
+        st.stop()
+
+    # Show Google Form button
+    st.success("✅ Authenticated. Use the button below to open the activity posting form.")
+    if st.button("📝 Open Activity Form"):
+        st.markdown(f"[Click here to fill the form]({OWNER_ACTIVITY_FORM_URL})", unsafe_allow_html=True)               
