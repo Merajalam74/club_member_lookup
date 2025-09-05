@@ -86,24 +86,17 @@ if menu == "🏠 Dashboard":
         st.metric("🚫 Not Responded", total_not_responded if total_not_responded >= 0 else 0)
 
     # ----- Club participation bar chart -----
-    st.subheader("📊 Club Participation Comparison")
+	st.subheader("📊 Club Participation Comparison")
 
-    if "Club 1" in df.columns and "Club 2" in df.columns:
-        clubs = pd.concat([df["Club 1"], df["Club 2"]]).dropna()
-        club_counts = clubs.value_counts().sort_values(ascending=False)
+	if "Club 1" in df.columns and "Club 2" in df.columns:
+	    clubs = pd.concat([df["Club 1"], df["Club 2"]]).dropna()
+	    club_counts = clubs.value_counts().reset_index()
+	    club_counts.columns = ["Club", "Count"]
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        club_counts.plot(kind="bar", ax=ax)
-        ax.set_title("Number of Students in Each Club")
-        ax.set_xlabel("Clubs")
-        ax.set_ylabel("Number of Students")
-        plt.xticks(rotation=45, ha="right")
-
-        st.pyplot(fig)
-    else:
-        st.warning("⚠️ Club columns not found in the sheet.")
-
-    # ----- Latest responses -----
+ 	   st.bar_chart(club_counts.set_index("Club"))
+	else:
+ 	   st.warning("⚠️ Club columns not found in the sheet.")
+ 	   # ----- Latest responses -----
     st.subheader("🕒 Latest Responses")
     st.dataframe(df.tail(5), use_container_width=True)
 
