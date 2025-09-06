@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep  5 23:53:30 2025
+
+@author: merajalam
+"""
+
+
+import streamlit as st
+import pandas as pd
+import requests
+import io
+from datetime import datetime
+
+# ---------------------- CONFIG (EDIT THESE) ----------------------
+RESPONSES_CSV_URL = "https://docs.google.com/spreadsheets/d/1ZgOV7SHOX8XzK7EzgVTzDC8okXTPE_sCm1CRCq5Qdjs/gviz/tq?tqx=out:csv&sheet=Form%20responses%201"
+CLUBS_CSV_URL = "https://docs.google.com/spreadsheets/d/1cxLnalvVXCjpRnUnP-PdLRI7jja-IS2zlivuTTpwXkE/gviz/tq?tqx=out:csv&sheet=Clubs"
+ACTIVITY_CSV_URL = "https://docs.google.com/spreadsheets/d/1NCGh_uGdPHgVrD5jgb9tyaxh1JAz7orW1Eu7_O0Euxs/gviz/tq?tqx=out:csv&sheet=Clubs%20Activity"
+
+# (Optional) If you want owners to post Activity via a Google Form instead of API:
+OWNER_ACTIVITY_FORM_URL = "https://forms.gle/4Y43nLveVURbMuF69"  # leave "" to hide
+
+# (Optional) If using Google Sheets API to post Activity:
+USE_SHEETS_API_FOR_ACTIVITY_POST = False  # set True if you configure API
+OWNER_PIN = "1234"  # change this!
+
+# ---------------------- PAGE SETUP ----------------------
+st.set_page_config(page_title="🎓 Clubs | Student Portal", layout="wide", initial_sidebar_state="expanded")
+
+st.markdown("""
+<style>
+.stApp { background-color: #fbfbfb; }
+[data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #eee; }
+[data-testid="stDataFrame"] table { font-size: 0.95rem !important; }
+.card {
+    border: 1px solid #eee; border-radius: 10px; padding: 1rem; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03); margin-bottom: 1rem;
+}
+.club-logo { height: 46px; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------- HELPERS ----------------------
+@st.cache_data(ttl=120)
+def read_csv(url: str) -> pd.DataFrame:
+    try:
+        return pd.read_csv(url)
+    except Exception:
+        try:
+            # Fallback for Excel content
+            content = requests.get(url, timeout=20).content
+            return pd.read_csv(io.BytesIO(content))
+        except Exception:
+            return pd.DataFrame()
+
+def normalize_cols(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df.columns = [c.strip() for c in df.columns]
+    return df
+
+def safe_str(x):
+    return "" if pd.isna(x) else str(x).strip()
+# ---------------------- ACTIVITY FEED DISPLAY ----------------------
+def show_activity_feed(df: pd.DataFrame, limit: int = 10):
+    if df.empty:
+        st.info("No activity yet.")
+        return
+
+    # Sort by timestamp if present
+    if "Timestamp" in df.columns:
+        try:
+            df["__ts"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+            df = df.sort_values("__ts", ascending=False).drop(columns=["__ts"])
+        except:
+            pass
+
+    for _, row in df.head(3).iterrows():
+        club = safe_str(row.get("Club Name", ""))
+        title = safe_str(row.get("Title", ""))
+        message = safe_str(row.get("Message", ""))
+        posted_by = safe_str(row.get("Posted By", ""))
+        ts = safe_str(row.get("Timestamp", ""))
+
+        st.markdown(f"""
+        <div style="
+            border:1px solid #eee;
+            border-radius:10px;
+            padding:1rem 1.2rem;
+            margin-bottom:1rem;
+            background-color:white;
+            box-shadow:0 2px 4px rgba(0,0,0,0.05);
+        ">
+            <div style="font-size:0.8rem; color:#666; margin-bottom:0.3rem;">
+                {ts} • <b>{club}</b>
+            </div>
+            <div style="font-size:1.1rem; font-weight:600; margin-bottom:0.4rem;">
+                {title}
+            </div>
+            <div style="font-size:1rem; line-height:1.5; margin-bottom:0.6rem;">
+                {message}
+            </div>
+            <div style="font-size:0.85rem; color:#888;">
+                Posted by <b>{posted_by}</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ---------------------- DATA ----------------------
+responses_df = normalize_cols(read_csv(RESPONSES_CSV_URL))
+clubs_df     = normalize_cols(read_csv(CLUBS_CSV_URL))
+activity_df  = normalize_cols(read_csv(ACTIVITY_CSV_URL))
+
+# Ensure expected columns exist
+expected_resp_cols = {"Name","Registration Number","Department","Phone Number","Club 1","Club 2"}
+missing = expected_resp_cols - set(responses_df.columns)
+if missing:
+    st.warning(f"Response sheet missing columns: {', '.join(sorted(missing))}")
+
+# ---------------------- NAVIGATION ----------------------
+menu = st.sidebar.radio("📌 Navigation", ["🏠 Home", "📚 Explore Clubs", "📝 Register for Clubs", "👤 My Dashboard"])
+
+# ---------------------- HOME ----------------------
+if menu == "🏠 Home":
+    st.title("🎓 Student Clubs Portal")
+    st.write("Explore clubs, register your interests, and keep up with activities and announcements.")
+
+    col1,col3 = st.columns(2)
+    with col1:
+        st.metric("Available Clubs", int(clubs_df.shape[0]) if not clubs_df.empty else 0)
+  
+    with col3:
+        st.metric("Recent Activity Posts", int(activity_df.shape[0]) if not activity_df.empty else 0)
+
+    st.subheader("🆕 Latest Activity")
+    if not activity_df.empty and "Timestamp" in activity_df.columns:
+        show_cols = [c for c in ["Timestamp","Club Name","Title","Message","Posted By"] if c in activity_df.columns]
+        show_activity_feed(activity_df, limit=10)
+    else:
+        st.info("No activity posted yet.")
+
+
+# ---------------------- REGISTER (EMBED GOOGLE FORM) ----------------------
+elif menu == "📝 Register for Clubs":
+    st.title("📝 Register for Clubs")
+    st.info("Click the button below to open the registration form. Your submission will go directly into the official Google Response Sheet used by the admin.")
+
+    FORM_PUBLIC_URL = "https://forms.gle/tuBb5H4ncD7oBGmr9"
+
+    if "http" in FORM_PUBLIC_URL:
+        st.markdown(
+            f"""
+            <a href="{FORM_PUBLIC_URL}" target="_blank">
+                <button style="
+                    background-color:#4CAF50;
+                    color:white;
+                    padding:12px 24px;
+                    border:none;
+                    border-radius:6px;
+                    font-size:16px;
+                    cursor:pointer;
+                ">
+                📝 Register Now
+                </button>
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.warning("Please set FORM_PUBLIC_URL at the top of the script.")
+        
+# ---------------------- CLUBS DIRECTORY ----------------------
+elif menu == "📚 Explore Clubs":
+    st.title("📚 Explore Clubs")
+
+    if clubs_df.empty:
+        st.error("Clubs sheet is not available or empty.")
+    else:
+        search = st.text_input("Search clubs (name, description, leads)")
+        filtered = clubs_df.copy()
+        if search:
+            s = search.lower()
+            def row_match(r):
+                blob = " ".join(map(safe_str, [r.get("Club Name",""), r.get("Short Name",""), r.get("Description",""), r.get("Leads","")])).lower()
+                return s in blob
+            filtered = filtered[filtered.apply(row_match, axis=1)]
+
+        for _, r in filtered.iterrows():
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                cols = st.columns([1,5])
+                with cols[0]:
+                    logo = safe_str(r.get("Logo URL",""))
+                    if logo:
+                        st.image(logo, use_container_width=False, caption=None)
+                with cols[1]:
+                    st.subheader(safe_str(r.get("Club Name","")))
+                    st.caption(safe_str(r.get("Short Name","")))
+                    st.write(safe_str(r.get("Description","")))
+                    meta = []
+                    if safe_str(r.get("Leads","")): meta.append(f"**Leads:** {safe_str(r.get('Leads',''))}")
+                    if safe_str(r.get("Contact","")): meta.append(f"**Contact:** {safe_str(r.get('Contact',''))}")
+                    if safe_str(r.get("Website","")): meta.append(f"[Website]({safe_str(r.get('Website',''))})")
+                    if meta: st.markdown(" • ".join(meta))
+                st.markdown('</div>', unsafe_allow_html=True)
+# ---------------------- MY DASHBOARD ----------------------
+elif menu == "👤 My Dashboard":
+    st.title("👤 My Dashboard")
+
+    with st.form("lookup"):
+        reg_no = st.text_input("Registration Number", help="Enter exactly as in your form submission")
+        phone_last4 = st.text_input("Last 4 digits of your Phone Number", max_chars=4)
+        submitted = st.form_submit_button("Find my clubs")
+
+    if submitted:
+        if responses_df.empty:
+            st.error("Response sheet not reachable.")
+        else:
+            # normalize for comparison
+            df = responses_df.copy()
+            df["reg_norm"] = df["Registration Number"].astype(str).str.strip()
+            df["phone_norm"] = df["Phone Number"].astype(str).str.replace(r"\D","", regex=True).str[-4:]
+
+            match = df[(df["reg_norm"] == reg_no.strip()) & (df["phone_norm"] == phone_last4.strip())]
+            if match.empty:
+                st.error("No record found. Check your Registration Number and last 4 digits.")
+            else:
+                row = match.sort_values("Timestamp").iloc[-1] if "Timestamp" in match.columns else match.iloc[-1]
+                st.success(f"Welcome {safe_str(row.get('Name','Student'))}!")
+                cols = st.columns(2)
+                with cols[0]:
+                    st.metric("Department", safe_str(row.get("Department","")))
+                with cols[1]:
+                    st.metric("Registration Number", safe_str(row.get("Registration Number","")))
+
+                club1 = safe_str(row.get("Club 1",""))
+                club2 = safe_str(row.get("Club 2",""))
+                st.subheader("Your Clubs")
+                if not club1 and not club2:
+                    st.info("You have not selected any clubs yet.")
+                else:
+                    st.write("• " + "  \n• ".join([c for c in [club1, club2] if c]))
+
+                # Activity feed for joined clubs
+                if activity_df.empty:
+                    st.info("No activity yet.")
+                else:
+                    names = [c for c in [club1, club2] if c]
+                    if names:
+                        filt = activity_df[activity_df["Club Name"].isin(names)].copy()
+                        if "Timestamp" in filt.columns:
+                            try:
+                                filt["__ts"] = pd.to_datetime(filt["Timestamp"], errors="coerce")
+                                filt = filt.sort_values("__ts", ascending=False).drop(columns=["__ts"])
+                            except Exception:
+                                pass
+                        st.subheader("Recent Activity")
+                        show_cols = [c for c in ["Timestamp","Club Name","Title","Message","Posted By"] if c in filt.columns]
+                        if filt.empty:
+                            st.info("No posts yet for your clubs.")
+                        else:
+                            st.dataframe(filt[show_cols], use_container_width=True)
+                    else:
+                        st.info("Join a club to see its activity here.")
